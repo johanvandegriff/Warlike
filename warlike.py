@@ -36,12 +36,14 @@ SOFTWARE.
 
 import random, sys
 
+#card and suit information
 #         2   3   4   5   6   7   8   9   10   11  12  13  14
 cards = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]
 cardNames = ["two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace"]
 #                 0        1          2          3
 suits =     [    "+",     "O",       "#",       "@" ]
 suitNames = ["clubs", "diamonds", "hearts", "spades"]
+suitsDisplay = ' '.join([suits[i] + " = " + suitNames[i] for i in range(4)])
 
 #I made the card backs, but the cards themselves (further down) are from http://ascii.co.uk/art/cards
 rawCardBacks = [
@@ -442,6 +444,8 @@ r"""
 """
 ]
 
+#"raw" card ASCII, has been partly separated with emacs macros,
+#will be futher segmented into individual cards.
 #  Clubs +             Diamonds O          Hearts #            Spades @
 rawCardArt = [
 r"""
@@ -601,7 +605,7 @@ r"""
 """
 ]
 
-
+#this is how the cardArt data structure will be organized after the cards have been separated
 """
 cardArt = [#all cards
     [#2
@@ -629,6 +633,8 @@ cardArt = [#all cards
     #...
 ]
 """
+
+
 cardArt = []
 
 for card in range(2,15):
@@ -641,10 +647,11 @@ for card in range(2,15):
         for i in range(1,10):
             thisSuit.append(art[i][0+suit*20:11+suit*20])
 
-
-#cardBackNum = 21
+#select a random card back style
 cardBackNum = random.randrange(len(rawCardBacks))
 cardBack = rawCardBacks[cardBackNum].split('\n')[1:10]
+
+#cut out the middle and put the word "STEAL"
 cardBackSteal = cardBack[:]
 cardBackSteal[3] = cardBackSteal[3][0:2] + "       " + cardBackSteal[3][9:11]
 cardBackSteal[4] = cardBackSteal[4][0:2] + " STEAL " + cardBackSteal[4][9:11]
@@ -663,6 +670,7 @@ def printCard(card, suit):
         print(art[i])
 """
 
+#will print a list of cards horizontally by combining each row of text individually
 def printCards(cardList, spacing=9):
     allArt = [[] for i in range(9)]
     for card, suit in cardList:
@@ -679,20 +687,70 @@ def printCards(cardList, spacing=9):
     for art in allArt:
         print((' '*spacing).join(art))
 
-"""
-def printCard(card, suit):
-    if card is None:
-        print(cardBack)
-    else:
-        art = rawCardArt[14-card].split("\n")
-        for i in range(1,10):
-            print(art[i][0+suit*20:11+suit*20])
-"""
-
 #returns a value from 0-51 representing the card's ordering in the deck
 def getCardValue(card):
     return (card[0]-2)*4 + card[1]
 
+#when a player runs out of cards (and loses the game)
+class OutOfCardsException(Exception):
+    def __init__(self, message, who):
+        super().__init__(message)
+        self.who = who #keeps track of who lost so the handler can display who won
+
+#a class that represents a player (human or computer)
+class Player:
+    #the player is given a name and a personal deck of cards
+    def __init__(self, name, deck):
+        self.name = name
+        self.deck = deck
+        self.discard = [] #the discard pile starts out empty
+
+    #functions to look at or remove the top and bottom cards of the deck
+#    def peekTop(self):
+#        self.shuffleIfNeeded()
+#        return self.deck[0]
+    def peekBottom(self):
+        self.shuffleIfNeeded()
+        return self.deck[-1]
+    def popTop(self):
+        self.shuffleIfNeeded()
+        return self.deck.pop(0)
+    def popBottom(self):
+        self.shuffleIfNeeded()
+        return self.deck.pop(-1)
+
+    #this makes sure that the deck has cards, and if the deck and discard are both empty, it throws an exception saying that this player has lost.
+    def shuffleIfNeeded(self):
+        if len(self.deck) == 0:
+            if len(self.discard) == 0:
+                print("{} is out of cards!".format(self.name))
+                raise OutOfCardsException("No cards left in discard when deck ran out!", self.name)
+            else:
+                print("{} shuffles.".format(self.name))
+            self.deck = self.discard
+            random.shuffle(self.deck) #use the random library to shuffle the array
+            self.discard = []
+
+    #when a player wins the round, this is called to give the winnings back
+    def discardCard(self, card):
+        self.discard.append(card)
+
+    #discard the bottom card unless the deck is empty and therefore about to be shuffled anyway
+    def discardBottomIfAvailable(self):
+        if len(self.deck) > 0:
+            self.discardCard(self.popBottom())
+
+    #retrns the lengths of the deck and discard
+    def getDeckLen(self):
+        return len(self.deck)
+    def getDiscardLen(self):
+        return len(self.discard)
+
+
+
+### THE MAIN CODE STARTS HERE! ###
+
+#print the welcome screen
 print("""
 
 
@@ -710,11 +768,14 @@ print("""
                                    Press ENTER
 
 """)
+#read the input
 secret = input()
 
+#check if the secret debug code was entered
 debug = False
 if secret == "bamboo":
     debug = True
+    #I spent too long drawing this debug screen :(
     print("""
 
 
@@ -740,66 +801,43 @@ if secret == "bamboo":
 """)
     input()
 
-class OutOfCardsException(Exception):
-    def __init__(self, message, who):
-        super().__init__(message)
-        self.who = who
-
-class Player:
-    def __init__(self, name, deck):
-        self.name = name
-        self.deck = deck
-        self.discard = []
-
-#    def peekTop(self):
-#        self.shuffleIfNeeded()
-#        return self.deck[0]
-    def peekBottom(self):
-        self.shuffleIfNeeded()
-        return self.deck[-1]
-    def popTop(self):
-        self.shuffleIfNeeded()
-        return self.deck.pop(0)
-    def popBottom(self):
-        self.shuffleIfNeeded()
-        return self.deck.pop(-1)
-
-    def discardCard(self, card):
-        self.discard.append(card)
-
-    def shuffleIfNeeded(self):
-        if len(self.deck) == 0:
-            if len(self.discard) == 0:
-                print("{} is out of cards!".format(self.name))
-                raise OutOfCardsException("No cards left in discard when deck ran out!", self.name)
-            else:
-                print("{} shuffles.".format(self.name))
-            self.deck = self.discard
-            random.shuffle(self.deck)
-            self.discard = []
-
-    def getDeckLen(self):
-        return len(self.deck)
-    def getDiscardLen(self):
-        return len(self.discard)
-
+#loop through all the card values, then suits, and add them to the deck
 deck = []
 for card in range(2,15):
     for suit in range(4):
         deck.append((card,suit))
 
-
+#show the deck before shuffling if debug mode is on
 if debug:
+    #cut the deck up into segments of 6 cards so they fit in the terminal window
     for i in range(0,52, 6):
         printCards(deck[i:i+6],1)
     print("^^ deck before shuffling ^^")
     input()
 
+#shuffle the deck with the random library
 random.shuffle(deck)
 
+#cut the deck in half and give half to each player. This method would get you kicked out of a casino!
 player = Player("Player", deck[0:26])
 computer = Player("Computer", deck[26:52])
 
+#for testing purposes, here are scenarios where the player or computer is about to win:
+#player = Player("Player", deck[0:50])
+#computer = Player("Computer", deck[50:52])
+
+#player = Player("Player", deck[0:2])
+#computer = Player("Computer", deck[2:52])
+
+#a little test to try out the discardBottomIfAvailable function
+#for i in range(4):
+#    print("computerCards: {}".format(computer.deck))
+#    print("computerDiscard: {}".format(computer.discard))
+#    computer.discardBottomIfAvailable()
+#quit()
+
+
+#if debug is enabled, show the deck after shuffling and each player's cards
 if debug:
     for i in range(0,52,6):
         printCards(deck[i:i+6],1)
@@ -815,6 +853,7 @@ if debug:
     print("^^ computer's cards ^^")
     input()
 
+#show the game rules
 print("""
 
 
@@ -825,9 +864,9 @@ version of Warlike is played against a computer. To set up the game, the deck
 is shuffled and each player is dealt 26 cards. During each turn, each player
 has three options:
 
-        1. Play the top card, whose value is unknown.
+        1. Play the top card, which is unknown, and discard the bottom card.
 
-        2. Play the bottom card, whose value is known.
+        2. Play the bottom card, which is visible.
 
         3. "Steal" by taking the opponent's top card, playing it, and putting
            the bottom card in the opponent's discard pile. If the opponent
@@ -843,24 +882,23 @@ all the cards to win the game!
 """)
 input()
 
+#this will be used later to tell the player what the computer did
 choiceNames = ["the top card.", "the bottom card.", "to steal!"]
 
 try:
     while True:
-        #    playerTopCard = playerCards[0]
-        #    playerBottomCard = playerCards[-1] #visible
-
-        #    computerTopCard = computerCards[0]
-        #    computerBottomCard = computerCards[-1] #visible
-
+        #get the value of the computer's bottom card so it can decide what option to choose
         computerVaule = getCardValue(computer.peekBottom())
-        if computerVaule <= 52/3:
-            computerChoice = 3
-        elif computerVaule >= 52/2:
-            computerChoice = 2
-        else:
-            computerChoice = 1
 
+        #the next 6 lines are the entire AI logic of the computer.
+        if computerVaule <= 52/3: #if the value of the bottom card is low:
+            computerChoice = 3 #steal from the player to hopefully dump the low card to get a higher one
+        elif computerVaule >= 52/2: #if the value of the bottom card is high:
+            computerChoice = 2 #play the bottom card
+        else: #if the value of the bottom card is not very high or too low:
+            computerChoice = 1 #play the top card
+
+            #if debug is on, show the entire deck, discard, and choices of the player and computer
             if debug:
                 print("playerCards: {}".format(player.deck))
                 print("computerCards: {}".format(computer.deck))
@@ -870,12 +908,14 @@ try:
                 print("computerVaule: {}".format(computerVaule))
                 print("\n")
 
+        #show the player the options: top card (value unknown), bottom card (value known), steal
         playerBottomCard = player.peekBottom()
-        print("DECK: {}  DISCARD: {}  TOTAL: {}   {} = {} {} = {} {} = {} {} = {}\n".format(player.getDeckLen(), player.getDiscardLen(), player.getDeckLen() + player.getDiscardLen(), suits[0], suitNames[0], suits[1], suitNames[1], suits[2], suitNames[2], suits[3], suitNames[3]))
+        print("DECK: {}  DISCARD: {}  TOTAL: {}   {}\n".format(player.getDeckLen(), player.getDiscardLen(), player.getDeckLen() + player.getDiscardLen(), suitsDisplay))
         print("1. TOP CARD       2. BOTTOM CARD         3. STEAL")
-        printCards([(None, 0), playerBottomCard, (None,1)])
+        printCards([(None, 0), playerBottomCard, (None,1)]) #display the actual cards
         print("\n\n")
 
+        #ask the player for a choice. This takes only 5 lines of code compared to the computer's choice which takes 6, therefore the player is inherently dumber than the computer.
         playerChoice = None
         while playerChoice not in ("1", "2", "3"):
             sys.stdout.write("Pick one and press ENTER (1-3):")
@@ -884,13 +924,18 @@ try:
 
         print("\n")
 
+        #evaluate the player and computer's choices.
+
         playerCard = None
         #player selecting top card needs to be checked first in case computer steals from player later
         if playerChoice == 1: #top
             playerCard = player.popTop()
+            #the rules (that I made up) dictate that the bottom card is discarded when the top card is played
+            player.discardBottomIfAvailable()
 
         if computerChoice == 1: #top
             computerCard = computer.popTop()
+            computer.discardBottomIfAvailable()
         elif computerChoice == 2: #bottom
             computerCard = computer.popBottom()
         else: #steal
@@ -904,16 +949,19 @@ try:
             computer.discardCard(player.popBottom())
             playerCard = computer.popTop()
 
+        #if debug is on, print the cards chosen in tuple form
         if debug:
             print("playerCard: {}".format(playerCard))
             print("computerCard: {}".format(computerCard))
             print("\n\n")
 
-
+        #print the choices of the players (top, bottom, steal), and two cards chosen
         print("Player chose {} Computer chose {}\n".format(choiceNames[playerChoice-1], choiceNames[computerChoice-1]))
 
         print("PLAYER CARD        COMPUTER CARD")
         printCards([playerCard, computerCard])
+
+        #determine the winner winner chicken dinner for this round round get around I get around
         if getCardValue(computerCard) > getCardValue(playerCard):
             print("Computer wins this round.")
         else:
@@ -922,18 +970,23 @@ try:
         print("\nPress ENTER")
         input()
 
+        #based on the winner, put the winnings into that player's discard pile
         if getCardValue(computerCard) > getCardValue(playerCard):
             computer.discardCard(computerCard)
             computer.discardCard(playerCard)
         else:
             player.discardCard(computerCard)
             player.discardCard(playerCard)
+
+#when a player needs a card, either to look at or to draw, but they are completely out:
 except OutOfCardsException as e:
+    #determine the winner of the game based on who ran out of cards
     if e.who == "Computer":
         print("Player wins the game! :)")
     else:
         print("Computer wins the game... :(")
 
+#print the end screen
 print("""
 
                                 Thanks for playing

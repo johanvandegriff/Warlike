@@ -4,7 +4,7 @@
 ##                                   ##
 ##         Warlike Card Game         ##
 ##        by Johan Vandegriff        ##
-##    http://johan.vandegriff.net    ##
+##        https://johanv.xyz/        ##
 ##      MIT License (see below)      ##
 ##                                   ##
 ##   This program uses Bej's cards   ##

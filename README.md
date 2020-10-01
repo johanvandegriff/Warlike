@@ -4,8 +4,11 @@ https://github.com/johanvandegriff/Warlike
 
 ## How to Run
 
-Download warlike.py and execute in the terminal: `python3 warlike.py` or
-`./warlike.py`
+Download warlike.py and execute in the terminal. For example on Linux:
+
+```
+wget https://gitlab.com/johanvandegriff/Warlike/-/raw/master/warlike.py && python3 warlike.py
+```
 
 ## Rules
 
@@ -47,6 +50,7 @@ verify that the functions are working.
 
 The computer's AI is very simple (only 6 lines of code). It looks at the bottom
 card. If that card is:
+
 1. Within the bottom 1/3 of the 52 cards, it steals, hoping to trade the low
 vaue card for a higher one.
 2. Within the top 1/2 of the 52 cards, it plays the bottom card.
@@ -56,6 +60,7 @@ vaue card for a higher one.
 ## Tooling
 
 I decided to write this game in Python (rather than Java, C++, etc.) because:
+
 * It's a small project that is better suited to Python's scripting-like syntax.
 * Python has objects that can be used if needed.
 * String manipulation (to display the cards) is very easy in Python.
@@ -68,6 +73,7 @@ and choosing the style of the back of the cards randomly each game.
 Since this was a small project, I didn't use a unit testing framework. I did
 write snippets of code, add debug print statements, and modify the players'
 cards to test various edge cases, for example:
+
 * One player steals the top card, but the other one chose the top card.
 * Both players steal.
 * The top card is chosen with only 1 card left.
